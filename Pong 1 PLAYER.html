@@ -1,0 +1,233 @@
+<html>
+
+<canvas id="gameCanvas" width="800" height="600"></canvas>
+
+<script>
+var canvas;
+var canvasContext;
+var ballX = 50;//location
+var ballY = 50;
+var ballSpeedX = 15;//shift
+var ballSpeedY = 4;
+var ballAcceleration = 0;
+
+var player1Score = 0;
+var player2Score = 0;
+const WINNING_SCORE = 3;
+var player1WinToggle = false;
+
+var showWinScreen = false;
+
+var AISpeedY = 6;
+
+var paddle1Y = 250;
+var paddle2Y = 250;
+const PADDLE_HEIGHT = 100;
+const PADDLE_WIDTH = 10;
+
+function calculateMousePos(evt) {
+	var rect = canvas.getBoundingClientRect();
+	var root = document.documentElement;
+	var mouseX = evt.clientX - rect.left - root.scrollLeft;
+	var mouseY = evt.clientY - rect.top - root.scrollTop;
+	return {
+		x:mouseX,
+		y:mouseY
+	}
+}
+
+function handleMouseClick(evt){
+	if(showWinScreen){
+	player1Score=0;
+	player2Score=0;
+	showWinScreen=false;
+	}
+}
+
+window.onload = function(){
+	console.log("Hello World!");
+	canvas = document.getElementById('gameCanvas'); //Get data from canvas 
+	canvasContext = canvas.getContext('2d');
+
+	var framesPerSecond = 30;
+	setInterval(function(){
+		moveEverything();
+		drawEverything();
+	},1000/framesPerSecond); //1000 is 1000 milliseconds, so divide 1 sec by framesPerSecond
+
+	//Mouse Click
+	canvas.addEventListener('mousedown',handleMouseClick)
+
+
+	//PADDLE CONTROL
+	canvas.addEventListener('mousemove',
+			function(evt){
+				var mousePos = calculateMousePos(evt);
+				paddle1Y = mousePos.y - (PADDLE_HEIGHT/2);
+			})
+}
+
+function ballReset(){
+	if (player1Score >= WINNING_SCORE || player2Score >= WINNING_SCORE){
+		
+		//to annouce winner in score screen
+		if (player1Score>player2Score){
+			player1WinToggle = true;
+		} else {
+			player1WinToggle = false;
+		}
+		
+		player1Score = 0;
+		player2Score = 0;
+		showWinScreen = true;
+	}
+
+	ballSpeedX = -ballSpeedX;
+	ballX = canvas.width/2;
+	ballY = canvas.height/2;
+
+	//reset acceleration //UNFORT. This makes the respawn the exact same, so this and acceleration is both disabled unless respawn random is made.
+	//ballSpeedX = 15;//shift
+	//ballSpeedY = 4;
+}
+
+function computerMovement(){
+var tolerance = 35; //when to stop moving when ball is within boundary, to alleivate shakiness and unecessary constant movement to match the exact post of ball.
+	if(paddle2Y+PADDLE_HEIGHT/2<ballY-tolerance){
+		paddle2Y += AISpeedY;
+	} else if(paddle2Y+PADDLE_HEIGHT/2>ballY+tolerance) {
+		paddle2Y -= AISpeedY;
+	}
+}
+
+var incrementx = ballAcceleration; //how much to accelerate ball speed by
+var incrementy = ballAcceleration;
+
+function moveEverything(){
+
+//Win screen exit
+if (showWinScreen){
+	return; //return, exit the funciton with nothing executed.
+}
+
+	computerMovement(); //comment this line to pause the AI
+
+	ballX = ballX + ballSpeedX;//current location + shift
+	ballY = ballY + ballSpeedY;
+	
+	//X AXIS
+	//RHS
+	ballSpeedX = ballSpeedX + incrementx;
+	if (ballX > (canvas.width-10-PADDLE_WIDTH)){ //accounts for width of ball, remember box point is top left corner
+		//ballSpeedX = -ballSpeedX; //this was for the basic wall
+		//incrementx = -incrementx; //simple bounce back
+		if (ballY>paddle2Y && ballY<paddle2Y+PADDLE_HEIGHT){
+			ballSpeedX = -ballSpeedX
+
+			var deltaY = ballY - (paddle2Y+PADDLE_HEIGHT/2); //makes ball quicker when hit closer to the edge of the paddle
+			ballSpeedY = deltaY*0.35;
+
+		} else	{
+
+		if (ballX>canvas.width-10){ //continue as normal to bounce off wall when not touching paddle
+		player1Score++; //must be before ballReset();
+		ballReset(); //right side
+				}
+		}
+
+	}
+
+	//LHS
+	if (ballX < 10+PADDLE_WIDTH){ //screen offset + paddle thickness
+		//ballSpeedX = -ballSpeedX; //this was for the basic wall
+		//incrementx = -incrementx;
+
+		if (ballY>paddle1Y && ballY<paddle1Y+PADDLE_HEIGHT){
+			ballSpeedX = -ballSpeedX 
+
+			var deltaY = ballY - (paddle1Y+PADDLE_HEIGHT/2); //makes ball quicker when hit closer to the edge of the paddle
+			ballSpeedY = deltaY*0.35;
+
+		} else	{
+
+		if (ballX<10){ //continue as normal to bounce off wall when not touching paddle
+		player2Score++; //must be before ballReset();
+		ballReset(); //left side
+		}
+		}
+		
+	}
+
+	//Y AXIS
+	ballSpeedY = ballSpeedY + incrementy;
+	if (ballY > canvas.height-10){ //accounts for width of square, remember box point is top left corner
+		ballSpeedY = -ballSpeedY;
+		incrementy = -incrementy;
+	}
+	if (ballY < 10){
+		ballSpeedY = -ballSpeedY;
+		incrementy = -incrementy;
+	}
+}
+
+function drawNet(){
+	for (var i=0; i<canvas.height; i+=40){
+		colorRect(canvas.width/2-1,i,2,20,'white');
+	}
+}
+
+function drawEverything() { //full of easy functions
+	//make screen black
+	colorRect(0,0,canvas.width,canvas.height,'black');
+
+	//Win screen exit
+if (showWinScreen){
+	canvasContext.fillStyle = 'white';
+
+	if (player1WinToggle){
+	canvasContext.fillText('Player 1 wins!',350, 200);
+	} else {
+	canvasContext.fillText('Player 2 wins!',350, 200);
+	}
+
+	canvasContext.fillText('Click to continue',350, 500);
+	
+	return; //return, exit the funciton with nothing executed.
+}
+
+	//Net (should be drawn first so ball and others can be on top of it (technically overwrite/replace it))
+	drawNet();
+
+	//left white paddle
+	colorRect(0,paddle1Y,PADDLE_WIDTH,PADDLE_HEIGHT,'white');
+
+	//right white paddle
+	colorRect(canvas.width-PADDLE_WIDTH,paddle2Y,PADDLE_WIDTH,PADDLE_HEIGHT,'white');
+
+	//ball
+	colorCircle(ballX, ballY, 10, 'white'); 
+
+	//scoreboard
+	canvasContext.fillText(player1Score,100, 100);
+	canvasContext.fillText(player2Score,canvas.width-100, 100);
+
+
+}
+
+//color rectangle function
+function colorRect(leftX,topY,width,height,drawColor){ //X coor Y coor but remember boxes origin is top LHS corner
+	canvasContext.fillStyle = drawColor;
+	canvasContext.fillRect(leftX,topY,width,height);
+}
+
+//color circle shape
+function colorCircle(centerX, centerY, radius, drawColor){
+	canvasContext.fillStyle = drawColor;
+	canvasContext.beginPath();
+	canvasContext.arc(centerX, centerY, radius, 0, Math.PI*2, true); //(x-center, y-center, radius, startingAngle, endingAngle, counterclockwise?)
+	canvasContext.fill();
+}
+
+</script>
+
+</html>

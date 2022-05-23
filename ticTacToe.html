@@ -1,0 +1,172 @@
+<!doctype html>
+<html>
+	<head>
+		<title>Tic Tac Toe</title>
+		<meta charset="utf-8"/>
+	</head>
+	<body>
+	<canvas id="myCanvas" width="500" height="560" style="border:1px solid black">
+	</canvas>
+	<script type="text/javascript">
+		
+		var moveX = 0x0;
+		var moveO = 0x0;
+		var validMoves = [{x:1,y:1},{x:1,y:2},{x:1,y:3},{x:2,y:1},{x:2,y:2},{x:2,y:3},{x:3,y:1},{x:3,y:2},{x:3,y:3}];
+
+		function drawGrid(ctx, width, height){
+
+			var leftLineDistance = width/3;
+			var rightLineDistance = 2*(width/3);
+			var topLineDistance =  height/3;
+			var bottomLineDistance =  2*(height/3);
+
+			ctx.moveTo(leftLineDistance, 0);
+			ctx.lineTo(leftLineDistance, height);
+			ctx.stroke();
+
+			ctx.moveTo(rightLineDistance, 0);
+			ctx.lineTo(rightLineDistance, height);
+			ctx.stroke();
+
+			ctx.moveTo(0, topLineDistance);
+			ctx.lineTo(width, topLineDistance);
+			ctx.stroke();
+
+			ctx.moveTo(0, bottomLineDistance);
+			ctx.lineTo(width, bottomLineDistance);
+			ctx.stroke();
+
+		}
+
+		function drawText(ctx, width, height){
+			ctx.font = "30px Comic Sans MS";
+			ctx.fillStyle = "red";
+			ctx.textAlign = "center";
+			ctx.fillText("Basic Tic Tac Toe", width/2, height-20);
+		}
+
+		function drawCircle(x, y){
+			ctx.beginPath();
+			ctx.arc(x, y, 50, 0, 2 * Math.PI);
+			ctx.stroke();
+		}
+
+		function drawCross(x, y){
+			ctx.moveTo(x - 50, y - 50);
+			ctx.lineTo(x + 50, y + 50);
+			ctx.stroke();
+			ctx.moveTo(x + 50, y - 50);
+			ctx.lineTo(x - 50, y + 50);
+			ctx.stroke();
+		}
+
+		function getGridCoordinate(coord, reference){
+			/*
+
+			    |         |         |      x   |
+				|  (1,1)  |	 (2,1)  |  <coord> |
+				|_________|_________|__________|
+				|         |         |          |
+				|         |         |          |
+				|  (1,2)  |  (2,2)  |  (3,2)   |
+				|_________|_________|__________|
+				|         |         |          |
+				|         |         |          |
+				|  (1,3)  |  (2,3)  |  (3,3)   |
+				|         |         |          |
+				<------    reference    ------>
+				*/
+
+				var difference =  reference - coord;
+			if(difference <= reference/3) return 3;
+			else if(difference <= 2*(reference/3)) return 2;
+			else return 1; 
+
+		}
+
+		function getCenterOfClick(grid, reference){
+			switch(grid){
+				case 1: return reference/6;
+				break;
+				case 2: return reference/2;
+				break;
+				case 3: return 5*reference/6;
+			}
+		}
+
+		function winningMove(move){
+			var winningMoves = [0x1C0, 0x38, 0x7, 0x111, 0x54, 0x124, 0x92, 0x49];
+			var counter = 9;
+			while(counter--){
+				if(parseInt(winningMoves[counter] & move) ==  winningMoves[counter]) return true;
+			}
+			return false;
+		}
+
+		function computeMove(gridX, gridY){
+			if(gridX == 1){
+				if(gridY  == 1) return 0x100;
+				else if(gridY == 2) return 0x20;
+				else return 0x4;
+			}
+			else if(gridX == 2){
+				if(gridY == 1) return 0x80;
+				else if(gridY == 2) return 0x10;
+				else return 0x2;
+			}
+			else{
+				if(gridY == 1) return 0x40;
+				else if(gridY == 2) return 0x8;
+				else return 0x1;
+			}
+		}
+
+		function validateAndCompleteMove(gridX,gridY){
+			var iterator =  validMoves.length;
+			while(iterator--){
+				if( gridX == validMoves[iterator].x && gridY == validMoves[iterator].y){
+					validMoves.splice(iterator,1);
+					return true;
+				}				
+			}
+			return false;
+		}
+
+		function getComputerMove(){
+			var choice = Math.round(Math.random() * (validMoves.length - 1));
+			var computerMove = validMoves[choice];
+			validMoves.splice(choice,1);
+			return computerMove;
+		}
+		
+		var canvas = document.getElementById("myCanvas");
+		var ctx = canvas.getContext("2d");
+		ctx.strokeStyle = "black";
+		var gridHeight =  canvas.height - 60;
+		drawGrid(ctx, canvas.width, gridHeight);
+		drawText(ctx, canvas.width, canvas.height);
+
+		canvas.onclick = function(event){
+			var x = event.clientX;
+			var y = event.clientY;
+			var gridX =  getGridCoordinate(x, canvas.width);
+			var gridY =  getGridCoordinate(y, gridHeight);
+			if(validateAndCompleteMove(gridX,gridY)){
+				moveX = moveX | computeMove(gridX, gridY);
+				drawCross(getCenterOfClick(gridX, canvas.width), getCenterOfClick(gridY, gridHeight));
+				if(winningMove(moveX)) alert("X wins");
+				else if (validMoves.length == 0) alert ("It's a draw");
+				else{
+					var computerGrid =  getComputerMove();
+					moveO = moveO | computeMove(computerGrid.x, computerGrid.y);
+					drawCircle(getCenterOfClick(computerGrid.x, canvas.width), getCenterOfClick(computerGrid.y, gridHeight));
+					if(winningMove(moveO)) alert("O wins");
+					else if(validMoves.length == 0) alert("It's a draw");
+				}
+			}
+			
+		}
+
+		</script>
+	</body>
+</html>
